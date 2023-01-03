@@ -1,36 +1,37 @@
 package ru.netology.steps;
 
 import com.codeborne.selenide.Selenide;
-import io.cucumber.java.ru.Когда;
-import io.cucumber.java.ru.Пусть;
-import io.cucumber.java.ru.Тогда;
-import org.junit.jupiter.api.Assertions;
+import io.cucumber.java.ru.*;
+import ru.netology.data.DataHelper;
 import ru.netology.page.DashboardPage;
 import ru.netology.page.LoginPage;
-import ru.netology.page.TransactionPage;
-import ru.netology.page.VerificationPage;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class TemplateSteps {
-    private static LoginPage loginPage;
-    private static DashboardPage dashboardPage;
+    private DashboardPage dashboardPage;
 
-    @Пусть("пользователь залогинен с именем {string} и паролем {string}")
+    @Пусть("Пользователь залогинен с именем {string} и паролем {string}")
     public void validAuth(String login, String password) {
-       loginPage = Selenide.open("http://localhost:9999/", LoginPage.class);
-       dashboardPage = loginPage.validLogin(login, password).validVerify();
+        var loginPage = Selenide.open("http://localhost:9999/", LoginPage.class);
+        var verificationPage = loginPage.validLogIn(login, password);
+        dashboardPage = verificationPage.validVerify(DataHelper.getVerificationCode());
+
     }
 
-    @Когда("пользователь переводит {string} рублей с карты с номером {string} на свою 1 карту с главной страницы")
-    public void validTransaction(String amount, String cardNumber) {
-        dashboardPage = new TransactionPage().toFirstCardValidTransaction(amount, cardNumber);
+    @Когда("Пользователь переводит {} рублей с карты с номером {} на свою {} карту с главной страницы")
+    public void validTransaction(String amount, String cardNumberFrom, int cardIndexTo) {
+        var transactionPage = dashboardPage.selectCardToTransfer(cardIndexTo);
+        dashboardPage = transactionPage.makeValidTransfer(amount, cardNumberFrom);
     }
 
-    @Тогда("баланс его 1 карты из списка на главной странице должен стать {string} рублей")
-    public void getFirstCardBalance(String cash) {
-        String expected = cash.replace(" ", "");
-        String actual = dashboardPage.getFirstCardBalance();
-        Assertions.assertEquals(expected, actual);
+    @Тогда("Баланс его {} карты из списка на главной странице должен стать {} рублей")
+    public void getFirstCardBalance(int cardIndexBalance, String expectedBalance) {
+        var actual = dashboardPage.getCardBalance(cardIndexBalance);
+        var expected = Integer.parseInt(expectedBalance.replaceAll(" ", ""));
+
+        assertEquals(expected, actual);
     }
 
 }
